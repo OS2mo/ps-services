@@ -1,8 +1,10 @@
-﻿# ----- Settings ---------- #
-#$ScriptVersion = 2.1
+﻿#$ScriptVersion = 2.2
+
+# ----- Settings ---------- #
 $SettingOURoot = "OU=HK,DC=holstebro,DC=dk" # Roden skal være oprettet. Angiver roden for hvor scriptet skal arbejde fra.
 $SettingAutoritativOrg = "hKAutoriativOrg" # Angiv navnet på den attribut som indeholder den autoritative organisation
-$SettingLogFilePath = "C:\PSScript\Log.txt" # Angiv stien til log filen (der gemmes kun log for den nyeste kørsel)
+$SettingLogPath = "C:\PSScript\" # Angiv stien til hvor log filer skal placeres (Format: "C:\PSScript\")
+$SettingLogsToKeep = 10 # Angiv hvor mange log filer der skal gemmes (der laves en ny log fil med dato og tid, for hver kørsel af scriptet)
 
 # ----- Faste variabler --- #
 $global:movedcount = 0 
@@ -113,15 +115,29 @@ Do{
 
 }
 
+# Funktion til logning
+function Start-Log {
+$Timestamp = Get-Date -Format "D.dd.mm.yyyy.T.HH.mm"
+
+# Angiver unikt navn til log filen
+$LogFilePath = $SettingLogPath + "Log." + $Timestamp + ".txt"
+
+# Slet gamle log filer
+Get-ChildItem -Path $SettingLogPath | Sort-Object CreationTime -Descending | Select -Skip $SettingLogsToKeep | Remove-Item -Force
+
+Start-Transcript -Path $LogFilePath
+}
+
 # ----- Run -------------- #
 
-Start-Transcript -Path $SettingLogFilePath
+# Starter transcript logning
+Start-Log
 
 # Kør for én bestemt bruger
 #$Users = Get-ADUser -Identity "itattest"
 
 # Kør for alle brugere, i forhold til $SettingOURoot
-$Users = Get-ADUser -Filter * -SearchBase $SettingOURoot
+#$Users = Get-ADUser -Filter * -SearchBase $SettingOURoot
 
 $time = Measure-Command {
 
@@ -144,4 +160,5 @@ Write-host "Empty OUs removed:" $global:EmptyOUsRemoved
 Write-host "Total time (sec):" $time.TotalSeconds
 Write-host ""
 
+# Stopper logning
 Stop-Transcript
