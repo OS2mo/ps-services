@@ -1,72 +1,50 @@
-/*
-Dette view anvendes i forbindelse med udtræk, hvor det ønskes at koble en medarbejder med nærmeste leder. 
-I dette view findes nærmeste leder pr. Engagement. En person kan ikke være leder for sig selv (Kommunaldirektøren/øverste leder undtaget)
+/* VIEW = Brugere_Primær_AD_Email
+Dette view har til formål at indeholde forretningsreglen for hvilken AD konto og E-mail der er den primære for brugere, som har flere AD konti (i forskellige AD'er)
+Resultatet findes i kolonnerne "Primær_AD_Brugernavn" og "Primær_Email"
+Hvis en bruger KUN har en værdi for en attribut fra ét AD returneres værdien fra det pågældende AD. Hvis en bruger har en konto begge steder returneres værdien fra Adm. AD
+
+CREATE VIEW Brugere_Primær_AD_Email AS
 */
 
-CREATE VIEW Engagementer_Nærmesteleder AS
 SELECT
-total.[Engagement UUID]
-,total.[Tj.nr]
-,total.Primær
-,total.[Bruger UUID]
-,CONCAT (b.fornavn, ' ', b.efternavn) AS 'Bruger'
-,total.[Nærmeste leder UUID]
-,CONCAT (l.fornavn, ' ', l.efternavn) AS 'Nærmeste leder'
+    b.[uuid] AS 'Bruger_UUID'
+    ,CONCAT(b.fornavn,' ',b.efternavn) AS Bruger
+    ,AdmAD.brugernavn AS 'Adm_AD_Brugernavn'
+    ,SkoleAD.brugernavn AS 'Skole_AD_Brugernavn'
+    ,SCAD.brugernavn AS 'SC_AD_Brugernavn'
+    ,CASE 
+        WHEN AdmAD.brugernavn IS NOT NULL THEN admad.brugernavn
+        WHEN SkoleAD.brugernavn IS NOT NULL THEN SkoleAD.brugernavn
+        WHEN SCAD.brugernavn IS NOT NULL THEN SCAD.brugernavn
+        ELSE NULL
+    END AS 'Primær_AD_Brugernavn'
+    ,AdmADEmail.værdi AS 'Adm_AD_Email'
+    ,SCViborgEmail.værdi AS 'SC_AD_Email'
+    ,SkoleEmail.værdi AS 'Skole_AD_Email'
+    ,CASE 
+        WHEN AdmADEmail.værdi IS NOT NULL then AdmADEmail.værdi
+        WHEN SkoleEmail.værdi IS NOT NULL then SkoleEmail.værdi
+        WHEN SCViborgEmail.værdi IS NOT NULL then SCViborgEmail.værdi
+        ELSE NULL
+    END AS 'Primær_EMail'
 
-FROM (
-        -- Engagementer, hvor nærmeste leder hentes fra parent enhed (lederes leder)
-        SELECT
-        e.uuid AS 'Engagement UUID'
-        ,e.bvn AS 'Tj.nr'
-        ,e.primær_boolean AS 'Primær'
-        ,e.bruger_uuid AS 'Bruger UUID'
-        ,l2.bruger_uuid AS 'Nærmeste leder UUID'
+  FROM [DBname].[DBuser].[brugere] b
 
-        FROM DBname.[DBuser].engagementer e
+  LEFT JOIN DBname.[DBuser].it_forbindelser AdmAD /* Administrativ AD it-konto */
+  ON b.uuid = AdmAD.bruger_uuid AND AdmAD.it_system_uuid='b3ba9dfa-bb96-421a-8474-5ccd5ad84ce1'
 
-        JOIN DBname.[DBuser].enheder u ON u.uuid = e.enhed_uuid
-        JOIN DBname.[DBuser].ledere l ON u.leder_uuid = l.uuid
-        JOIN DBname.[DBuser].enheder u2 ON u2.uuid = u.forældreenhed_uuid
-        JOIN DBname.[DBuser].ledere l2 ON u2.fungerende_leder_uuid = l2.uuid
+  LEFT JOIN DBname.[DBuser].it_forbindelser SkoleAD /* Skole AD it-konto */
+  ON b.uuid = SkoleAD.bruger_uuid AND SkoleAD.it_system_uuid='b0c27020-9a7a-11ea-8b83-0bb60cd4e329'
 
-        WHERE e.bruger_uuid = l.bruger_uuid
+  LEFT JOIN DBname.[DBuser].it_forbindelser SCAD /* Sprogcenter AD it-konto */
+  ON b.uuid = SCAD.bruger_uuid AND SCAD.it_system_uuid='28d7c076-d6df-4053-875c-048a5766e4d3'
 
-    UNION
-        -- Engagementer, hvor nærmeste leder hentes fra enhed (medarbejderes leder)
-        SELECT
-        e.uuid AS 'Engagement UUID'
-        ,e.bvn AS 'Tj.nr'
-        ,e.primær_boolean AS 'Primær'
-        ,e.bruger_uuid AS 'Bruger UUID'
-        ,l.bruger_uuid AS 'Nærmeste leder UUID'
+  LEFT JOIN DBname.[DBuser].adresser AdmADEmail /* Administrativ AD E-mail */
+  ON b.uuid = AdmADEmail.bruger_uuid AND AdmADEmail.adressetype_uuid='fa865555-58b5-327d-e7dc-2990b0d28ff9'
 
-        FROM DBname.[DBuser].engagementer e
+  LEFT JOIN DBname.[DBuser].adresser SkoleEmail /* Skole AD E-mail */
+  ON b.uuid = SkoleEmail.bruger_uuid AND SkoleEmail.adressetype_uuid='9e01e5f2-9a7e-11ea-adc6-87cbe08a5ca1'
 
-        JOIN DBname.[DBuser].enheder u ON u.uuid = e.enhed_uuid
-        JOIN DBname.[DBuser].ledere l ON u.fungerende_leder_uuid = l.uuid
-
-        WHERE e.bruger_uuid != l.bruger_uuid
-
-    UNION
-        -- Kommunaldirektøren's engagement (leder for sig selv)
-        SELECT
-        e.uuid AS 'Engagement UUID'
-        ,e.bvn AS 'Tj.nr'
-        ,e.primær_boolean AS 'Primær'
-        ,e.bruger_uuid AS 'Bruger UUID'
-        ,l.bruger_uuid AS 'Nærmeste leder UUID'
-
-        FROM DBname.[DBuser].engagementer e
-
-        JOIN DBname.[DBuser].enheder u ON u.uuid = e.enhed_uuid
-        JOIN DBname.[DBuser].ledere l ON u.fungerende_leder_uuid = l.uuid
-
-        WHERE e.bruger_uuid = l.bruger_uuid AND u.forældreenhed_uuid is NULL
-
-) total -- alias for output af parantesen
-
-LEFT JOIN DBname.[DBuser].brugere b ON b.uuid=total.[Bruger UUID]
-LEFT JOIN DBname.[DBuser].brugere l ON l.uuid=total.[Nærmeste leder UUID]
-
-ORDER BY total.[Nærmeste leder UUID]
+  LEFT JOIN DBname.[DBuser].adresser SCViborgEmail /* Sprogcenter AD E-mail */
+  ON b.uuid = SCViborgEmail.bruger_uuid AND SCViborgEmail.adressetype_uuid='773e4f8b-ed9f-403d-ba67-219cff7d937e'
 
