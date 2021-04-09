@@ -8,7 +8,7 @@ Den bruger der eksekverer scriptet skal have rettighed til at tilgå SQL databas
 
 Scriptet understøtter eksport til CSV, XML og JSON.
 
-JSON kan dannes i "multilevel", forudsat at kolonnerne i SQL udtrækket er navngivet på en bestemt måde. Se output.json som netop anvender "mulilevel" eksport, hvor brugeres engagementer er inkluderet "nestede" under brugerens element.
+JSON kan dannes i "multilevel", forudsat at kolonnerne i SQL udtrækket er navngivet på en bestemt måde. Se [output.json](output/output.json) som netop anvender "mulilevel" eksport, hvor brugeres engagementer er inkluderet "nestede" under brugerens element.
 
 Eksempelscriptet understøtter encoding i henholdsvis UTF-8 og UTF-8 BOM.
 
