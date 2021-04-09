@@ -1,6 +1,6 @@
 # SQL querys og scripts relateret til OS2mo's Actual state DB (MS SQL)
 
-Her deler Viborg Kommune sql views og querys relateret til [OS2mo Actualstate databasen](https://github.com/OS2mo/os2mo-data-import-and-export/tree/development/exporters/sql_export).
+Her deler Viborg Kommune Powershell scripts, sql views og querys relateret til [OS2mo Actualstate databasen](https://github.com/OS2mo/os2mo-data-import-and-export/tree/development/exporters/sql_export).
 
 Mappen "[Eksempelscript](Eksempelscript)" indeholder et eksempelscript til eksport af data via powershell.
 
