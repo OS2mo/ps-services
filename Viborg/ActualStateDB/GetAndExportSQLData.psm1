@@ -16,8 +16,8 @@
 # Forudsætter: https://github.com/Tervis-Tumbler/InvokeSQL/blob/master/InvokeSQL.psm1
 InvokeSQL.psm1 modulet skal være importeret i scripts, som anvender dette modul. Eksempel:
 
-Using module "InvokeSQL.psm1"
-Using module "GetAndExportSQLData.psm1"
+Using module ".\InvokeSQL.psm1"
+Using module ".\GetAndExportSQLData.psm1"
 #>
 
 #region - SQL helper class
