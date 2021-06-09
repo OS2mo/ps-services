@@ -3,7 +3,7 @@
 	===========================================================================
 	 Created by:   	Kim Andersen
 	 Organization: 	Viborg Kommune
-     Version: 1.0
+     Version: 1.1
 	===========================================================================
 	.DESCRIPTION
 		Dette modul tilbyder funktioner til at læse data fra SQL, og på baggrund af disse data generere
@@ -11,7 +11,7 @@
 		Scriptet er udviklet til at blive anvendt sammen med OS2mo-Actual-state databaser:
         https://github.com/OS2mo/os2mo-data-import-and-export/tree/development/exporters/sql_export
         
-        SQL adgang autoriseres med rettighederne for den Windows bruger, som eksekverer scriptet (kerberos).
+        SQL adgang autoriseres med rettighederne for den Windows bruger, som eksekverer scriptet (via kerberos).
 
 # Forudsætter: https://github.com/Tervis-Tumbler/InvokeSQL/blob/master/InvokeSQL.psm1
 InvokeSQL.psm1 modulet skal være importeret i scripts, som anvender dette modul. Eksempel:
@@ -25,6 +25,7 @@ class SQLqueryHelper {
     [string]$SQLServer
     [String]$SQLdatabase
     [string]$SQLCommand
+    [Int]$Rowlength #Antal returnerede rækker i SQL query
     [System.Management.Automation.PSObject]$DataRows
     [System.Management.Automation.PSObject]$DataHeaders
 	
@@ -37,7 +38,19 @@ class SQLqueryHelper {
         $this.SQLdatabase = $database
         $this.SQLCommand = $Command
         $this.DataRows = Invoke-MSSQL -Server $server -database $database -SQLCommand $Command -ConvertFromDataRow:$false
-        $this.DataHeaders = $this.DataRows[0].psobject.Properties.name | Where-Object { ($_ -notin "RowError", "RowState", "Table", "ItemArray", "HasErrors") }
+
+        if (!$this.DataRows) {
+            $this.Rowlength = 0
+        }
+        elseif ($this.DataRows[0].GetType().Name -eq 'DataRow') {
+            # Hvis datatypen på det første element er DataRow, så er elementet et array, og så består DataRows variabelen af et array af arrays. Dvs. der er mere end 1 række i resultatet
+            $this.Rowlength = $this.DataRows.length 
+            $this.DataHeaders = $this.DataRows[0].psobject.Properties.name | Where-Object { ($_ -notin "RowError", "RowState", "Table", "ItemArray", "HasErrors")}
+        }
+        else {
+            $this.Rowlength = 1
+            $this.DataHeaders = $this.DataRows.psobject.Properties.name | Where-Object { ($_ -notin "RowError", "RowState", "Table", "ItemArray", "HasErrors")}
+        }
     }
 	
     [Array]DataArray() {
@@ -46,9 +59,7 @@ class SQLqueryHelper {
             $RowData = [ordered]@{ }
             foreach ($header in $this.DataHeaders) {
                 $RowData[$($header)] = $row.$($header)
-				
             }
-			
             $OutArray += New-Object System.Management.Automation.PSObject -Property $RowData
             Remove-Variable "RowData"
         }
@@ -125,13 +136,12 @@ function OutputAsXML {
         
     $xmlWriter.WriteEndElement()
     
+    # finalize the document:
+    $xmlWriter.WriteEndDocument()
+    $xmlWriter.Flush()
+    $xmlWriter.Close()
 
-        # finalize the document:
-        $xmlWriter.WriteEndDocument()
-        $xmlWriter.Flush()
-        $xmlWriter.Close()
-    
-    If ($UseUTF8BOM -eq $False) {
+    If (!$UseUTF8BOM) {
         [XML] $XmlDocument = ( Select-Xml -Path $Outfilename  -XPath / ).Node
 
         [System.Xml.XmlWriterSettings] $XmlSettings = New-Object System.Xml.XmlWriterSettings
@@ -173,6 +183,8 @@ function ExtractSublevel {
 
     }
 }
+
+
 
 function ConvertToMultilevel {
     param ($Myquery)
