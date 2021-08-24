@@ -4,7 +4,7 @@ Formålet med dette script er at opdage fejlbehæftede lederregistreringer og un
 
 Dette script gennemgår en række registreringer i OS2mo, som er relateret til ledere, og danner en e-mail rapport til HR afdelingen, som indeholder registreringer, som kan være problematiske. Der sendes kun en mail de dage, hvor der er nye registreringer som matcher filteret, men alle registreringer som matches kommer med hver gang mailen dannes (indtil fejlen er rettet eller problematikken ikke længere gør sig gældende).
 
-Se en beskrivelse af hvilke registreringer der tjekkes for i beskrivelsen øverst i [Ledere_OBS_GetSQLdata.sql](Ledere_OBS_GetSQLdata.sql). I denne fil skal man også tilrette diverse variabler øverst, så de passer til eget miljø.
+Se en beskrivelse af hvilke registreringer der tjekkes for i beskrivelsen øverst i [Ledere_OBS_GetSQLdata.sql](Ledere_OBS_GetSQLdata.sql). I denne fil skal man også tilrette diverse variabler øverst, så de passer til eget miljø. Husk også at erstatte alle forekomster af [DBname].[DBuser] med sql server og brugernavn på ejer af tabellerne i databasen.
 
 ## Scriptet består af 2 powershell filer
 
